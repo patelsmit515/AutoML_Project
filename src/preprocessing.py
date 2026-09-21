@@ -49,7 +49,7 @@ def handle_missing_values(
 
     return df
 
-#scaling Num data
+# Encoding Num data
 def get_scaler(scaling_strategy):
     if scaling_strategy == "standard":
         return StandardScaler()
