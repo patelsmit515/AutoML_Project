@@ -18,7 +18,7 @@ def split_data(
 
     return X_train, X_test, y_train, y_test
 
-# 
+# Model pipeline creation
 def create_model_pipeline(preprocessor, model):
     
     pipeline = Pipeline(
@@ -30,7 +30,7 @@ def create_model_pipeline(preprocessor, model):
 
     return pipeline
 
-#model training
+# Model training
 def train_model(pipeline, X_train, y_train):
 
     pipeline.fit(X_train, y_train)
