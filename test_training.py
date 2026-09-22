@@ -3,6 +3,8 @@ from src.preprocessing import identify_columns, create_preprocessor
 from src.models import get_classification_models
 from src.training import split_data, create_model_pipeline, train_model
 from src.training import make_predictions
+from src.evaluation import evaluate_classification
+
 
 # Load dataset
 df = load_data("data/test.csv")
@@ -59,6 +61,9 @@ trained_pipeline = train_model(
     y_train
 )
 
+print("Model trained successfully!")
+
+# Make predictions
 predictions = make_predictions(
     trained_pipeline,
     X_test
@@ -69,3 +74,18 @@ print(y_test.values)
 
 print("\nPredicted values:")
 print(predictions)
+
+print("Reached evaluation section")
+
+# Evaluate model
+results = evaluate_classification(
+    y_test,
+    predictions
+)
+
+print("\nEvaluation results:")
+
+for metric, value in results.items():
+    print(f"{metric}: {value:.4f}")
+
+
