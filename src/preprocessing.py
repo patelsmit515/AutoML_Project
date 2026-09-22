@@ -4,8 +4,12 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (OneHotEncoder, StandardScaler,
                     OrdinalEncoder,MinMaxScaler,RobustScaler)
-
-
+from src.config import (
+    DEFAULT_SCALING,
+    DEFAULT_ENCODING,
+    DEFAULT_NUMERICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_IMPUTATION
+)
 
 
 #Num and Cat Columns identifier
@@ -87,10 +91,10 @@ def get_encoder(encoding_strategy):
 def create_preprocessor(
     numerical_columns,
     categorical_columns,
-    numerical_strategy="median",
-    categorical_strategy="most_frequent",
-    scaling_strategy="standard",
-    encoding_strategy="onehot"
+    numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
+    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION,
+    scaling_strategy=DEFAULT_SCALING,
+    encoding_strategy=DEFAULT_ENCODING
 ):
 
     numerical_pipeline = Pipeline(

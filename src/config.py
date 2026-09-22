@@ -405,3 +405,112 @@ REGRESSION_MODEL_INFO = {
         "scaling": "Not required",
     }
 }
+
+# Available models
+
+CLASSIFICATION_MODEL_NAMES = [
+    "Logistic Regression",
+    "Decision Tree",
+    "Random Forest",
+    "KNN",
+    "SVM",
+    "Gradient Boosting",
+    "XGBoost"
+]
+
+
+REGRESSION_MODEL_NAMES = [
+    "Linear Regression",
+    "Decision Tree",
+    "Random Forest",
+    "KNN",
+    "SVR",
+    "Gradient Boosting",
+    "XGBoost"
+]
+
+
+
+# Default training settings
+
+DEFAULT_TEST_SIZE = 0.2
+
+DEFAULT_RANDOM_STATE = 42
+
+DEFAULT_CV_FOLDS = 5
+
+# Preprocessing options
+
+SCALING_OPTIONS = {
+    "standard": "Standard Scaling",
+    "minmax": "Min-Max Scaling",
+    "robust": "Robust Scaling",
+    "none": "No Scaling"
+}
+
+
+ENCODING_OPTIONS = {
+    "onehot": "One-Hot Encoding",
+    "ordinal": "Ordinal Encoding"
+}
+
+
+NUMERICAL_IMPUTATION_OPTIONS = {
+    "mean": "Mean",
+    "median": "Median",
+    "most_frequent": "Most Frequent"
+}
+
+
+CATEGORICAL_IMPUTATION_OPTIONS = {
+    "most_frequent": "Most Frequent",
+    "constant": "Constant Value"
+}
+
+# Supported problem types
+
+PROBLEM_TYPES = {
+    "classification": "Classification",
+    "regression": "Regression"
+}
+
+# Supported problem types
+
+PROBLEM_TYPES = {
+    "classification": "Classification",
+    "regression": "Regression"
+}
+
+# Default preprocessing settings
+
+DEFAULT_SCALING = "standard"
+
+DEFAULT_ENCODING = "onehot"
+
+DEFAULT_NUMERICAL_IMPUTATION = "median"
+
+DEFAULT_CATEGORICAL_IMPUTATION = "most_frequent"
+
+
+TEST_SIZE_OPTIONS = [
+    0.1,
+    0.2,
+    0.25,
+    0.3,
+    0.4
+]
+
+CV_FOLD_OPTIONS = [
+    3,
+    5,
+    10
+]
+
+OPTIMIZATION_METHODS = {
+    "grid_search": "Grid Search",
+    "random_search": "Randomized Search"
+}
+
+DEFAULT_OPTIMIZATION_METHOD = "grid_search"
+
+DEFAULT_N_ITER = 20
