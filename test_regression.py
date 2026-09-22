@@ -7,7 +7,8 @@ from src.training import (
     train_model,
     make_predictions
 )
-from src.evaluation import evaluate_regression
+from src.evaluation import evaluate_regression,select_best_model
+
 
 # Load dataset
 df = load_data("data/regression_test.csv")
@@ -99,3 +100,12 @@ results_df = pd.DataFrame.from_dict(
 
 print("\n\nModel comparison:")
 print(results_df)
+
+best_model = select_best_model(
+    results_df,
+    "r2_score",
+    "regression"
+)
+
+print("\nBest model according to R²:")
+print(best_model)

@@ -1,3 +1,9 @@
+from src.config import (
+    CLASSIFICATION_METRICS,
+    REGRESSION_METRICS
+)
+
+
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -72,3 +78,35 @@ def evaluate_regression(y_true, y_pred):
     }
 
     return results
+
+def select_best_model(results_df, metric, problem_type):
+
+    
+    if problem_type == "classification":
+
+        if metric not in CLASSIFICATION_METRICS:
+            raise ValueError(
+                f"'{metric}' is not a valid classification metric."
+            )
+
+        best_model = results_df[metric].idxmax()
+
+    elif problem_type == "regression":
+
+        if metric not in REGRESSION_METRICS:
+            raise ValueError(
+                f"'{metric}' is not a valid regression metric."
+            )
+
+        if metric in ["mae", "mse", "rmse"]:
+            best_model = results_df[metric].idxmin()
+
+        else:
+            best_model = results_df[metric].idxmax()
+
+    else:
+        raise ValueError(
+            f"Unsupported problem type: {problem_type}"
+        )
+
+    return best_model
