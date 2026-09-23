@@ -1,115 +1,1341 @@
 # Architecture — AutoML Project
 
-## 1. Summary
-A Python backend engine for tabular AutoML, organized as a set of composable modules under `src/`. Each stage of the ML workflow (load → validate → preprocess → train → evaluate) is a separate module with pure functions, wired together by thin driver scripts. No web framework or persistence layer is wired in yet — `streamlit` is a declared dependency for a planned UI that hasn't been implemented.
+## 1. Project Purpose
 
-## 2. Tech Stack
-- **Language:** Python
-- **Core libraries:** pandas, numpy, scikit-learn, xgboost (imported directly in `models.py`, not in `requirements.txt` — see risks)
-- **Planned UI:** Streamlit
-- **Planned visualization:** matplotlib, seaborn
-- **Testing:** ad-hoc script-based smoke tests (`test_preprocessing.py`, `test_training.py`, `test_regression.py`) — not pytest-style assertions
+This project is a Python-based AutoML engine for tabular datasets.
 
-## 3. Project Structure
+The long-term goal is to allow a user to:
+
+1. Upload or provide a tabular dataset.
+2. Select the target column.
+3. Select the problem type:
+
+   * Classification
+   * Regression
+4. Configure preprocessing options.
+5. Select one or more machine-learning models.
+6. Train the selected models.
+7. Evaluate their performance using appropriate metrics.
+8. Compare model results.
+9. Select the best-performing model according to a user-selected metric.
+10. Eventually optimize model hyperparameters.
+11. Eventually display the complete workflow through a Streamlit interface.
+
+The project is being built **backend-first**. The Streamlit UI will be added only after the core AutoML workflow is stable.
+
+---
+
+# 2. Development Philosophy
+
+The project is intentionally being developed in small, testable stages.
+
+### Main rule
+
+**Do not build several layers at once.**
+
+For each new component:
+
+1. Understand what the component is supposed to do.
+2. Make the smallest necessary code change.
+3. Run a test.
+4. Inspect the output.
+5. Fix problems if necessary.
+6. Only then move to the next component.
+
+This prevents errors from being hidden inside a large system.
+
+### Avoid unnecessary complexity
+
+The project should not add functionality simply because it might be useful later.
+
+Features such as:
+
+* advanced validation
+* multiclass handling
+* hyperparameter optimization
+* visualization
+* Streamlit
+* automated testing
+* large-dataset handling
+
+should be added when their corresponding stage is reached.
+
+Existing working code should not be unnecessarily rewritten.
+
+---
+
+# 3. Current Development Stage
+
+The project has completed the initial core ML modules and their smoke tests.
+
+Current status:
+
+```text
+config.py             COMPLETE
+data_loader.py        COMPLETE
+validation.py         COMPLETE
+preprocessing.py      COMPLETE
+models.py             COMPLETE
+training.py           COMPLETE
+evaluation.py         COMPLETE
+
+Regression workflow  TESTED
+Classification       TESTED
+
+Orchestration         NEXT
+Streamlit UI          FUTURE
+Hyperparameter search FUTURE
 ```
+
+The core workflow currently works through individual test scripts.
+
+The next major backend component is an **orchestration layer** that will combine the existing modules into one reusable AutoML workflow.
+
+---
+
+# 4. Technology Stack
+
+## Current
+
+* Python
+* pandas
+* NumPy
+* scikit-learn
+* XGBoost
+* Git
+* GitHub
+* VS Code
+
+## Planned
+
+* Streamlit — user interface
+* matplotlib — visualization
+* seaborn — visualization
+* pytest — automated testing
+
+The UI and visualization layers are not currently implemented.
+
+---
+
+# 5. Project Structure
+
+Current structure:
+
+```text
 AutoML_Project/
+
+├── .gitignore
+├── architecture.md
+├── prd.md
+├── requirements.txt
+│
 ├── data/
-│   ├── test.csv                  # classification sample (Age, Salary, City, Purchased)
-│   └── regression_test.csv       # regression sample (Age, Experience, Salary)
+│   ├── test.csv
+│   └── regression_test.csv
+│
 ├── src/
-│   ├── config.py                 # metric/model metadata, defaults, option constants
-│   ├── data_loader.py            # CSV → DataFrame
-│   ├── validation.py             # dataset quality checks
-│   ├── preprocessing.py          # column typing, imputation, scaling, encoding pipeline
-│   ├── models.py                 # model factories (classification & regression)
-│   ├── training.py               # split, pipeline assembly, fit, predict
-│   └── evaluation.py             # metrics, best-model selection
-├── test_preprocessing.py         # smoke test: preprocessing on test.csv
-├── test_training.py              # smoke test: single-model training on test.csv
-├── test_regression.py            # smoke test: all regression models on regression_test.csv
-└── requirements.txt
+│   ├── __init__.py
+│   ├── config.py
+│   ├── data_loader.py
+│   ├── validation.py
+│   ├── preprocessing.py
+│   ├── models.py
+│   ├── training.py
+│   └── evaluation.py
+│
+├── test_preprocessing.py
+├── test_classification.py
+└── test_regression.py
 ```
 
-## 4. Module Responsibilities
+`__pycache__/` may appear inside `src/` during development. It is generated by Python and should not be treated as source code.
 
-### `config.py`
-Central source of truth for:
-- `METRIC_INFO` — name, direction (higher/lower is better), description, when-to-use, and warning text for each metric.
-- `CLASSIFICATION_MODEL_INFO` / regression equivalent — description, when-to-use, advantages, limitations, scaling recommendation per model.
-- Lists of available metrics/models per problem type.
-- Default settings: test size (0.2), random state (42), CV folds (5), scaling (standard), encoding (one-hot), imputation strategies, optimization method (grid search), n_iter (20).
-- UI-facing option dictionaries (test size options, CV fold options, scaling/encoding/imputation option labels) — designed to back dropdowns/selectors in the not-yet-built UI.
+---
 
-This module has no logic, only data — it's the contract between the ML engine and any future UI.
+# 6. Module Responsibilities
 
-### `data_loader.py`
-Single function `load_data(file_path)` wrapping `pd.read_csv`. No error handling for malformed files, wrong delimiters, or encoding issues yet.
+## 6.1 config.py
 
-### `validation.py`
-`validate_dataset(df, target_column)` returns `(errors, warnings)`:
-- **Errors (blocking):** empty dataset, missing target column.
-- **Warnings (non-blocking):** <10 rows, duplicate rows, missing values present, no numerical columns.
-This split lets a future UI decide what halts the flow vs. what's just surfaced as a caution.
+`config.py` is the central configuration and metadata module.
 
-### `preprocessing.py`
-- `identify_columns(df, target_column)` — splits feature columns into numerical (`number` dtype) vs. categorical (`object` dtype). Note: this misses boolean, datetime, and category dtypes.
-- `handle_missing_values(...)` — standalone imputation utility (currently unused by the main pipeline path, which does imputation inline via `create_preprocessor`).
-- `get_scaler` / `get_encoder` — factory functions mapping config strings to sklearn transformers.
-- `create_preprocessor(...)` — builds a `ColumnTransformer` with parallel numerical (impute → scale) and categorical (impute → encode) `Pipeline`s. This is the reusable preprocessing artifact fit inside every model pipeline.
+It contains no ML workflow logic.
 
-### `models.py`
-Two factory functions returning `{name: unfitted_estimator}` dictionaries:
-- `get_classification_models()` — Logistic Regression, Decision Tree, Random Forest, KNN, SVM, Gradient Boosting, XGBoost.
-- `get_regression_models()` — Linear Regression, Decision Tree, Random Forest, KNN, SVR, Gradient Boosting, XGBoost.
-Each call constructs fresh, unfitted instances with default hyperparameters.
+It currently contains:
 
-### `training.py`
-- `split_data(X, y, test_size, random_state)` — thin wrapper over `train_test_split`.
-- `create_model_pipeline(preprocessor, model)` — combines preprocessor + estimator into a single sklearn `Pipeline`, so preprocessing is fit only on training data and applied consistently at predict time.
-- `train_model(pipeline, X_train, y_train)` / `make_predictions(pipeline, X_test)` — fit/predict wrappers.
+### Metric information
 
-### `evaluation.py`
-- `evaluate_classification(y_true, y_pred)` → accuracy, precision, recall, F1 (binary-classification assumptions: `precision_score`/`recall_score`/`f1_score` are called without `average=`, which defaults to binary — will break on multiclass targets).
-- `evaluate_regression(y_true, y_pred)` → MAE, MSE, RMSE, R².
-- `select_best_model(results_df, metric, problem_type)` — picks `idxmax`/`idxmin` on a results DataFrame depending on whether the metric is "higher is better" or "lower is better" (MAE/MSE/RMSE use `idxmin`; everything else `idxmax`).
+`METRIC_INFO`
 
-## 5. Data Flow (current, script-driven)
+Contains:
+
+* display name
+* direction:
+
+  * higher is better
+  * lower is better
+* description
+* when to use
+* warning
+
+Supported classification metrics:
+
+```text
+accuracy
+precision
+recall
+f1_score
 ```
-CSV file
-  → load_data()
-  → validate_dataset()               [errors/warnings]
-  → identify_columns()               [numerical_columns, categorical_columns]
-  → create_preprocessor()            [ColumnTransformer]
-  → split_data()                     [X_train, X_test, y_train, y_test]
-  → get_*_models()                   [{name: estimator}]
-  → for each model:
-        create_model_pipeline()
-        train_model()
-        make_predictions()
-        evaluate_*()                 [metrics dict]
-  → aggregate into results_df
-  → select_best_model()
+
+Supported regression metrics:
+
+```text
+mae
+mse
+rmse
+r2_score
 ```
-This flow is currently exercised by the three top-level `test_*.py` scripts, each hardcoding a dataset path and target column — there is no orchestrating "run pipeline for arbitrary dataset" entry point yet.
 
-## 6. Planned / Missing Layers
-- **UI layer (Streamlit):** dependency declared, no `app.py` or equivalent exists. Would consume `config.py`'s option dictionaries and metadata directly.
-- **Hyperparameter search:** `OPTIMIZATION_METHODS` (grid/random search) and `DEFAULT_N_ITER` are defined in config but not wired into `training.py` — no `GridSearchCV`/`RandomizedSearchCV` usage in the codebase yet.
-- **Visualization:** matplotlib/seaborn are dependencies but unused in `src/`.
-- **Orchestration entry point:** no single function/CLI that takes (file path, target column, config overrides) and returns full results — logic currently lives only in test scripts.
-- **Automated tests:** current `test_*.py` files are runnable demo scripts (print statements), not `pytest`/`unittest` assertions — no CI-friendly test suite yet.
+### Model information
 
-## 7. Known Issues / Risks
-- `xgboost` is imported in `models.py` but not listed in `requirements.txt` — will cause an `ImportError` on a clean install.
-- `identify_columns` only recognizes `number` and `object` dtypes; boolean/datetime/categorical dtype columns fall through uncategorized.
-- Classification metrics assume binary targets (no `average` parameter set for multiclass).
-- `handle_missing_values` in `preprocessing.py` is dead code relative to the pipeline path (imputation is duplicated inside `create_preprocessor`).
-- No handling for extremely large datasets or memory limits during `pd.read_csv`.
+Classification:
 
-## 8. Suggested Next Steps
-1. Add `xgboost` to `requirements.txt`.
-2. Build the Streamlit UI, consuming `config.py` metadata directly for labels/help text.
-3. Wire `GridSearchCV`/`RandomizedSearchCV` into `training.py` using the existing `OPTIMIZATION_METHODS` config.
-4. Generalize classification metrics to support multiclass targets.
-5. Add a single orchestration function (e.g., `run_automl(file_path, target_column, config_overrides)`) to replace the duplicated logic across the three test scripts.
-6. Convert smoke-test scripts into real `pytest` tests with assertions.
+```text
+Logistic Regression
+Decision Tree
+Random Forest
+KNN
+SVM
+Gradient Boosting
+XGBoost
+```
+
+Regression:
+
+```text
+Linear Regression
+Decision Tree
+Random Forest
+KNN
+SVR
+Gradient Boosting
+XGBoost
+```
+
+Each model has metadata such as:
+
+* description
+* when to use
+* advantages
+* limitations
+* scaling recommendation
+
+### Default settings
+
+Currently includes:
+
+```text
+DEFAULT_TEST_SIZE = 0.2
+DEFAULT_RANDOM_STATE = 42
+DEFAULT_CV_FOLDS = 5
+
+DEFAULT_SCALING = "standard"
+DEFAULT_ENCODING = "onehot"
+
+DEFAULT_NUMERICAL_IMPUTATION = "median"
+DEFAULT_CATEGORICAL_IMPUTATION = "most_frequent"
+
+DEFAULT_CLASSIFICATION_METRIC = "accuracy"
+DEFAULT_REGRESSION_METRIC = "r2_score"
+
+DEFAULT_MODEL_SELECTION = "all"
+
+DEFAULT_OPTIMIZATION_METHOD = "grid_search"
+DEFAULT_N_ITER = 20
+```
+
+The configuration module is intended to become the contract between the backend and the future UI.
+
+---
+
+# 7. data_loader.py
+
+Responsibility:
+
+```text
+CSV file → pandas DataFrame
+```
+
+Current function:
+
+```python
+load_data(file_path)
+```
+
+It currently wraps:
+
+```python
+pd.read_csv()
+```
+
+Advanced file handling is intentionally not implemented yet.
+
+Possible future improvements:
+
+* CSV validation
+* encoding handling
+* delimiter detection
+* file size checks
+* potentially other tabular formats
+
+These should be added only when required by the application.
+
+---
+
+# 8. validation.py
+
+Responsibility:
+
+Check whether the dataset can proceed through the AutoML workflow.
+
+Current function:
+
+```python
+validate_dataset(df, target_column)
+```
+
+Returns:
+
+```text
+errors, warnings
+```
+
+### Errors
+
+Errors are blocking problems.
+
+Current examples:
+
+* empty dataset
+* target column does not exist
+
+### Warnings
+
+Warnings do not automatically stop execution.
+
+Current examples:
+
+* fewer than 10 rows
+* duplicate rows
+* missing values
+
+The validation system is intentionally simple at this stage.
+
+The small test datasets used during development are expected to trigger the fewer-than-10-rows warning.
+
+Future validation may include:
+
+* target with insufficient classes
+* target containing too many missing values
+* unsuitable target type
+* invalid test size
+* insufficient samples for selected cross-validation folds
+* constant columns
+* extremely high-cardinality categorical columns
+* unsupported data types
+
+---
+
+# 9. preprocessing.py
+
+Responsibility:
+
+Prepare feature columns for machine-learning models.
+
+## identify_columns()
+
+```python
+identify_columns(df, target_column)
+```
+
+Separates feature columns into:
+
+```text
+numerical_columns
+categorical_columns
+```
+
+The target column is excluded.
+
+Currently numerical columns are detected using numerical pandas dtypes.
+
+Categorical columns currently use `object` dtype.
+
+Boolean, datetime, and pandas `category` dtypes are not yet specially handled.
+
+---
+
+## handle_missing_values()
+
+Standalone helper for imputing missing values.
+
+It currently supports configurable strategies.
+
+However, the main AutoML path uses the preprocessing pipeline created by `create_preprocessor()`.
+
+This standalone function should not be used casually if doing so would cause preprocessing to happen before the train/test split, because that could introduce data leakage.
+
+---
+
+## get_scaler()
+
+Maps configuration values to sklearn scalers:
+
+```text
+standard → StandardScaler
+minmax   → MinMaxScaler
+robust   → RobustScaler
+none     → passthrough
+```
+
+---
+
+## get_encoder()
+
+Maps configuration values to encoders:
+
+```text
+onehot  → OneHotEncoder
+ordinal → OrdinalEncoder
+```
+
+Unknown categorical values are handled safely.
+
+---
+
+## create_preprocessor()
+
+Creates a `ColumnTransformer`.
+
+Numerical pipeline:
+
+```text
+Numerical columns
+      ↓
+Imputation
+      ↓
+Scaling
+```
+
+Categorical pipeline:
+
+```text
+Categorical columns
+      ↓
+Imputation
+      ↓
+Encoding
+```
+
+This preprocessing object is later placed inside each model's sklearn `Pipeline`.
+
+This is important because preprocessing is then fitted only on training data.
+
+---
+
+# 10. models.py
+
+Responsibility:
+
+Provide fresh, unfitted model instances.
+
+## Classification
+
+```python
+get_classification_models()
+```
+
+Returns a dictionary:
+
+```text
+model name → unfitted estimator
+```
+
+Current models:
+
+```text
+Logistic Regression
+Decision Tree
+Random Forest
+KNN
+SVM
+Gradient Boosting
+XGBoost
+```
+
+## Regression
+
+```python
+get_regression_models()
+```
+
+Current models:
+
+```text
+Linear Regression
+Decision Tree
+Random Forest
+KNN
+SVR
+Gradient Boosting
+XGBoost
+```
+
+Model names are controlled by the corresponding lists in `config.py`.
+
+The models currently use their sklearn/XGBoost default hyperparameters.
+
+Hyperparameter optimization will be added later.
+
+---
+
+# 11. training.py
+
+Responsibility:
+
+Handle the basic training workflow.
+
+Current functions:
+
+```python
+split_data()
+create_model_pipeline()
+train_model()
+make_predictions()
+```
+
+## split_data()
+
+Wrapper around:
+
+```python
+train_test_split()
+```
+
+Default settings come from `config.py`.
+
+---
+
+## create_model_pipeline()
+
+Combines:
+
+```text
+Preprocessor
+     +
+Model
+```
+
+into one sklearn `Pipeline`.
+
+Conceptually:
+
+```text
+Input data
+    ↓
+Preprocessor
+    ↓
+Model
+```
+
+This design helps prevent preprocessing leakage and ensures that the same transformations are applied during prediction.
+
+---
+
+## train_model()
+
+Fits the pipeline using training data.
+
+---
+
+## make_predictions()
+
+Uses the trained pipeline to generate predictions.
+
+---
+
+# 12. evaluation.py
+
+Responsibility:
+
+Evaluate trained models and determine which model performs best according to a selected metric.
+
+## Classification metrics
+
+```text
+accuracy
+precision
+recall
+f1_score
+```
+
+Current implementation assumes binary classification.
+
+Multiclass support is a future improvement.
+
+---
+
+## Regression metrics
+
+```text
+MAE
+MSE
+RMSE
+R²
+```
+
+---
+
+## select_best_model()
+
+```python
+select_best_model(results_df, metric, problem_type)
+```
+
+The function checks that the metric belongs to the selected problem type.
+
+It then uses `METRIC_INFO` to determine whether the metric should be maximized or minimized.
+
+Conceptually:
+
+```text
+Higher is better
+    → idxmax()
+
+Lower is better
+    → idxmin()
+```
+
+This is preferable to hard-coding specific metric names inside the selection logic.
+
+---
+
+# 13. Current Data Flow
+
+The current system works through driver/test scripts.
+
+```text
+CSV
+ ↓
+load_data()
+ ↓
+validate_dataset()
+ ↓
+identify_columns()
+ ↓
+create_preprocessor()
+ ↓
+split_data()
+ ↓
+get_models()
+ ↓
+for each model
+    ↓
+create_model_pipeline()
+    ↓
+train_model()
+    ↓
+make_predictions()
+    ↓
+evaluate()
+ ↓
+results DataFrame
+ ↓
+select_best_model()
+```
+
+---
+
+# 14. Current Test Datasets
+
+Two small datasets are currently being used as development/smoke-test datasets.
+
+## Classification
+
+File:
+
+```text
+data/test.csv
+```
+
+Columns:
+
+```text
+Age
+Salary
+City
+Purchased
+```
+
+Target:
+
+```text
+Purchased
+```
+
+Features:
+
+```text
+Age
+Salary
+City
+```
+
+Expected column identification:
+
+```text
+Numerical:
+Age
+Salary
+
+Categorical:
+City
+```
+
+The dataset has only 4 rows.
+
+Therefore it is **not suitable for meaningful model-performance evaluation**.
+
+It is used to verify that:
+
+* data loading works
+* target separation works
+* column detection works
+* categorical preprocessing works
+* pipelines can train
+* predictions can be generated
+* classification metrics can execute
+
+---
+
+## Regression
+
+File:
+
+```text
+data/regression_test.csv
+```
+
+Columns:
+
+```text
+Age
+Experience
+Salary
+```
+
+Target:
+
+```text
+Salary
+```
+
+Features:
+
+```text
+Age
+Experience
+```
+
+The dataset has only 8 rows.
+
+Therefore it is also **not suitable for meaningful model-performance evaluation**.
+
+It is used to verify that:
+
+* regression data loads
+* numerical columns are identified
+* preprocessing works
+* all regression models can be constructed
+* models can train
+* predictions can be generated
+* regression metrics work
+* model comparison works
+* best-model selection works
+
+---
+
+# 15. Completed Smoke Tests
+
+## test_preprocessing.py
+
+Successfully verified:
+
+```text
+Numerical columns:
+['Age', 'Salary']
+
+Categorical columns:
+['City']
+```
+
+The preprocessor was successfully created with:
+
+```text
+Numerical:
+SimpleImputer(strategy='median')
+→ StandardScaler()
+
+Categorical:
+SimpleImputer(strategy='most_frequent')
+→ OneHotEncoder(handle_unknown='ignore')
+```
+
+Status:
+
+```text
+PASS
+```
+
+---
+
+## test_regression.py
+
+Successfully trained and evaluated all seven regression models:
+
+```text
+Linear Regression
+Decision Tree
+Random Forest
+KNN
+SVR
+Gradient Boosting
+XGBoost
+```
+
+The complete workflow worked successfully.
+
+The tiny test dataset produced a very high R² for Linear Regression.
+
+This result must **not** be interpreted as evidence that Linear Regression is generally the best model. The dataset contains only 8 rows and is strongly structured.
+
+The purpose of this test was code verification.
+
+Status:
+
+```text
+PASS
+```
+
+---
+
+## test_classification.py
+
+Successfully trained a Random Forest classification pipeline.
+
+The pipeline:
+
+```text
+Age + Salary
+    → numerical preprocessing
+
+City
+    → categorical preprocessing
+
+Purchased
+    → target
+```
+
+Training, prediction, and classification metrics all executed successfully.
+
+The test had only one test observation, so:
+
+```text
+accuracy = 1.0
+precision = 1.0
+recall = 1.0
+f1 = 1.0
+```
+
+must **not** be interpreted as genuine model performance.
+
+Status:
+
+```text
+PASS
+```
+
+---
+
+# 16. Next Development Stage
+
+The next major component is the **orchestration layer**.
+
+Planned file:
+
+```text
+src/automl.py
+```
+
+The purpose is to remove duplicated workflow logic from the test scripts.
+
+The orchestration layer should eventually accept inputs such as:
+
+```text
+dataset
+target column
+problem type
+test size
+random state
+preprocessing settings
+selected models
+selected metric
+optimization settings
+```
+
+and coordinate the existing modules.
+
+Conceptually:
+
+```text
+run_automl(...)
+       ↓
+load data
+       ↓
+validate
+       ↓
+identify columns
+       ↓
+create preprocessor
+       ↓
+split data
+       ↓
+get selected models
+       ↓
+train models
+       ↓
+predict
+       ↓
+evaluate
+       ↓
+aggregate results
+       ↓
+select best model
+       ↓
+return structured results
+```
+
+The orchestration layer should **reuse existing functions** rather than duplicating their implementation.
+
+---
+
+# 17. Development Order After Orchestration
+
+After the orchestration layer is implemented and tested, the planned order is:
+
+## Stage 1 — Orchestration
+
+Create:
+
+```text
+src/automl.py
+```
+
+Then create a small smoke test for the orchestration function.
+
+Do not immediately delete the existing test scripts. They are useful while the new layer is being verified.
+
+---
+
+## Stage 2 — Requirements Cleanup
+
+Ensure every imported runtime dependency is present in:
+
+```text
+requirements.txt
+```
+
+This includes XGBoost.
+
+The project should be installable on another machine from the repository.
+
+---
+
+## Stage 3 — Hyperparameter Optimization
+
+Wire the configuration already present in `config.py` into the training system.
+
+Planned functionality:
+
+```text
+GridSearchCV
+RandomizedSearchCV
+```
+
+Existing configuration:
+
+```text
+OPTIMIZATION_METHODS
+DEFAULT_OPTIMIZATION_METHOD
+DEFAULT_CV_FOLDS
+DEFAULT_N_ITER
+```
+
+The exact implementation should be decided when this stage begins.
+
+Optimization should not be added prematurely to the basic training workflow.
+
+---
+
+## Stage 4 — Robust Validation
+
+Expand validation based on actual requirements discovered during development.
+
+Possible checks:
+
+* minimum rows for train/test split
+* class distribution
+* minimum samples per class
+* cross-validation feasibility
+* missing target values
+* unsupported target types
+* unsuitable test sizes
+* problematic feature types
+
+Validation should distinguish between:
+
+```text
+Blocking errors
+```
+
+and
+
+```text
+Warnings
+```
+
+---
+
+## Stage 5 — Multiclass Classification
+
+Improve classification evaluation so that classification metrics can handle:
+
+```text
+binary classification
+multiclass classification
+```
+
+The implementation should be chosen carefully so that metric meanings remain clear to the user.
+
+---
+
+## Stage 6 — Visualization
+
+Add model/result visualizations only after the core results structure is stable.
+
+Potential visualizations:
+
+### Regression
+
+* actual vs predicted
+* residual plots
+* model comparison
+
+### Classification
+
+* confusion matrix
+* model comparison
+* possibly class distribution
+
+Visualization should consume results from the backend rather than becoming part of the core training logic.
+
+---
+
+## Stage 7 — Streamlit UI
+
+Only after the backend orchestration layer is stable.
+
+Planned UI flow:
+
+```text
+Upload Dataset
+      ↓
+Preview Dataset
+      ↓
+Select Target
+      ↓
+Select Problem Type
+      ↓
+Configure Preprocessing
+      ↓
+Select Models
+      ↓
+Select Evaluation Metric
+      ↓
+Optional Optimization
+      ↓
+Run AutoML
+      ↓
+Display Results
+      ↓
+Display Best Model
+      ↓
+Display Model Details
+      ↓
+Display Visualizations
+```
+
+The UI should use `config.py` for:
+
+* model names
+* metric names
+* descriptions
+* warnings
+* dropdown options
+* defaults
+
+The UI should not contain duplicated ML logic.
+
+---
+
+# 18. Future Architecture
+
+The eventual architecture is expected to look approximately like:
+
+```text
+                    Streamlit UI
+                         │
+                         ↓
+                  AutoML Orchestrator
+                         │
+          ┌──────────────┼──────────────┐
+          ↓              ↓              ↓
+     Data Loader     Validation    Configuration
+          │              │              │
+          └──────────────┼──────────────┘
+                         ↓
+                   Preprocessing
+                         ↓
+                       Models
+                         ↓
+                      Training
+                         ↓
+                Hyperparameter Search
+                         ↓
+                    Evaluation
+                         ↓
+                  Model Comparison
+                         ↓
+                    Visualization
+                         ↓
+                     UI Results
+```
+
+The exact structure may change as the project develops.
+
+The architecture document should be updated when a major architectural decision is made.
+
+---
+
+# 19. Important Design Principles
+
+## Separation of responsibilities
+
+Each module should have one clear responsibility.
+
+For example:
+
+```text
+data_loader.py
+    → loading
+
+validation.py
+    → validation
+
+preprocessing.py
+    → preprocessing
+
+models.py
+    → model creation
+
+training.py
+    → training
+
+evaluation.py
+    → evaluation
+
+automl.py
+    → orchestration
+```
+
+---
+
+## Reuse existing functions
+
+The orchestration layer should call existing functions rather than copying their logic.
+
+For example:
+
+```python
+load_data()
+validate_dataset()
+create_preprocessor()
+get_regression_models()
+split_data()
+create_model_pipeline()
+train_model()
+make_predictions()
+evaluate_regression()
+select_best_model()
+```
+
+---
+
+## Configuration belongs in config.py
+
+User-facing choices and defaults should be centralized where practical.
+
+Avoid scattering values such as:
+
+```text
+0.2
+42
+"standard"
+"onehot"
+"median"
+```
+
+throughout the project when those values are intended to be configurable.
+
+---
+
+## Pipelines should prevent data leakage
+
+Preprocessing should remain inside the sklearn pipeline whenever possible:
+
+```text
+training data
+    ↓
+fit preprocessing
+    ↓
+fit model
+```
+
+and:
+
+```text
+test data
+    ↓
+apply already-fitted preprocessing
+    ↓
+predict
+```
+
+Do not fit preprocessing on the complete dataset before splitting unless there is a specific reason and the implications are understood.
+
+---
+
+# 20. Git / Multi-PC Workflow
+
+The project is maintained on GitHub and developed across multiple PCs.
+
+Before starting work on a PC:
+
+```bash
+git pull
+```
+
+After completing a meaningful change:
+
+```bash
+git status
+git add .
+git commit -m "Describe the change"
+git push
+```
+
+When moving to another PC:
+
+```text
+PC A
+ ↓
+commit
+ ↓
+push
+ ↓
+GitHub
+ ↓
+PC B
+ ↓
+pull
+```
+
+There is normally no need to clone the repository again if it is already cloned on that PC.
+
+If the repository has never been cloned onto a PC, clone it once.
+
+---
+
+# 21. How Future Development Should Be Continued
+
+When continuing this project after a break, first check:
+
+1. This `architecture.md`
+2. `prd.md`
+3. Current project tree
+4. Current source files
+5. Most recent test output
+6. Git status
+
+Do not assume that a planned feature has already been implemented merely because it appears in the future-plans section.
+
+The most recent confirmed development stage should always take priority.
+
+### Current confirmed stopping point
+
+The core modules are working and both classification and regression smoke tests pass.
+
+The next intended development task is:
+
+```text
+Create and test src/automl.py
+```
+
+Do not jump directly to Streamlit unless the orchestration stage has been completed or the project direction is explicitly changed.
+
+---
+
+# 22. Current Known Limitations
+
+These are known limitations and are not necessarily bugs at the current stage:
+
+* Very small smoke-test datasets.
+* Classification evaluation currently assumes binary classification.
+* Column detection does not yet specially handle boolean, datetime, or pandas category dtypes.
+* Standalone `handle_missing_values()` is not part of the primary pipeline path.
+* No hyperparameter optimization yet.
+* No visualization layer yet.
+* No Streamlit UI yet.
+* No persistent model storage yet.
+* No automated pytest suite yet.
+* No advanced large-dataset/memory handling yet.
+
+These should be addressed progressively rather than all at once.
+
+---
+
+# 23. Definition of a Stable Core
+
+The backend core should eventually be considered stable when:
+
+* arbitrary supported tabular datasets can be processed
+* validation clearly identifies blocking problems
+* preprocessing is configurable
+* classification and regression workflows both work
+* multiple models can be trained
+* models can be compared using configurable metrics
+* hyperparameter optimization works
+* results are returned in a structured form
+* the workflow can be called without relying on a test script
+* the Streamlit UI can consume the backend without duplicating ML logic
+
+Only after reaching this point should major UI refinement become the main focus.
