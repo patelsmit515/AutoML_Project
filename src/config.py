@@ -1,3 +1,7 @@
+# ============================================================
+# Metric Information
+# ============================================================
+
 METRIC_INFO = {
 
     # Classification metrics
@@ -63,7 +67,6 @@ METRIC_INFO = {
             "were correct overall."
         )
     },
-
 
     # Regression metrics
     "mae": {
@@ -133,6 +136,11 @@ METRIC_INFO = {
     }
 }
 
+
+# ============================================================
+# Available Metrics
+# ============================================================
+
 CLASSIFICATION_METRICS = [
     "accuracy",
     "precision",
@@ -147,6 +155,11 @@ REGRESSION_METRICS = [
     "rmse",
     "r2_score"
 ]
+
+
+# ============================================================
+# Classification Model Information
+# ============================================================
 
 CLASSIFICATION_MODEL_INFO = {
 
@@ -273,6 +286,10 @@ CLASSIFICATION_MODEL_INFO = {
     }
 }
 
+
+# ============================================================
+# Regression Model Information
+# ============================================================
 
 REGRESSION_MODEL_INFO = {
 
@@ -406,7 +423,10 @@ REGRESSION_MODEL_INFO = {
     }
 }
 
-# Available models
+
+# ============================================================
+# Available Models
+# ============================================================
 
 CLASSIFICATION_MODEL_NAMES = [
     "Logistic Regression",
@@ -430,8 +450,19 @@ REGRESSION_MODEL_NAMES = [
 ]
 
 
+# ============================================================
+# Supported Problem Types
+# ============================================================
 
-# Default training settings
+PROBLEM_TYPES = {
+    "classification": "Classification",
+    "regression": "Regression"
+}
+
+
+# ============================================================
+# Default Training Settings
+# ============================================================
 
 DEFAULT_TEST_SIZE = 0.2
 
@@ -439,7 +470,10 @@ DEFAULT_RANDOM_STATE = 42
 
 DEFAULT_CV_FOLDS = 5
 
-# Preprocessing options
+
+# ============================================================
+# Preprocessing Options
+# ============================================================
 
 SCALING_OPTIONS = {
     "standard": "Standard Scaling",
@@ -467,21 +501,10 @@ CATEGORICAL_IMPUTATION_OPTIONS = {
     "constant": "Constant Value"
 }
 
-# Supported problem types
 
-PROBLEM_TYPES = {
-    "classification": "Classification",
-    "regression": "Regression"
-}
-
-# Supported problem types
-
-PROBLEM_TYPES = {
-    "classification": "Classification",
-    "regression": "Regression"
-}
-
-# Default preprocessing settings
+# ============================================================
+# Default Preprocessing Settings
+# ============================================================
 
 DEFAULT_SCALING = "standard"
 
@@ -492,6 +515,32 @@ DEFAULT_NUMERICAL_IMPUTATION = "median"
 DEFAULT_CATEGORICAL_IMPUTATION = "most_frequent"
 
 
+# ============================================================
+# Model Selection Defaults
+# ============================================================
+
+DEFAULT_CLASSIFICATION_METRIC = "accuracy"
+
+DEFAULT_REGRESSION_METRIC = "r2_score"
+
+DEFAULT_MODEL_SELECTION = "all"
+
+
+# ============================================================
+# Display Defaults
+# ============================================================
+
+DEFAULT_SHOW_MODEL_DETAILS = True
+
+DEFAULT_SHOW_METRIC_DETAILS = True
+
+DEFAULT_SHOW_PLOTS = True
+
+
+# ============================================================
+# Test Size Options
+# ============================================================
+
 TEST_SIZE_OPTIONS = [
     0.1,
     0.2,
@@ -500,16 +549,27 @@ TEST_SIZE_OPTIONS = [
     0.4
 ]
 
+
+# ============================================================
+# Cross-Validation Options
+# ============================================================
+
 CV_FOLD_OPTIONS = [
     3,
     5,
     10
 ]
 
+
+# ============================================================
+# Optimization Settings
+# ============================================================
+
 OPTIMIZATION_METHODS = {
     "grid_search": "Grid Search",
     "random_search": "Randomized Search"
 }
+
 
 DEFAULT_OPTIMIZATION_METHOD = "grid_search"
 
