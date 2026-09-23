@@ -18,7 +18,8 @@ from src.training import (
     split_data,
     create_model_pipeline,
     train_model,
-    make_predictions
+    make_predictions,
+    cross_validate_model
 )
 
 from src.models import (
@@ -32,6 +33,10 @@ from src.evaluation import (
     select_best_model
 )
 
+
+# ============================================================
+# AutoML Workflow
+# ============================================================
 
 def run_automl(
     df,
@@ -53,15 +58,16 @@ def run_automl(
     6. Select models
     7. Create model pipelines
     8. Train models
-    9. Make predictions
-    10. Evaluate models
-    11. Create results DataFrame
-    12. Select best model
+    9. Cross-validate models
+    10. Make predictions
+    11. Evaluate models
+    12. Create results DataFrame
+    13. Select best model
     """
 
-    # --------------------------------------------------
-    # Step 1: Validate dataset
-    # --------------------------------------------------
+    # ========================================================
+    # Validation
+    # ========================================================
 
     errors, warnings = validate_dataset(
         df,
@@ -74,34 +80,34 @@ def run_automl(
             "warnings": warnings
         }
 
-    # --------------------------------------------------
-    # Step 2: Separate features and target
-    # --------------------------------------------------
+    # ========================================================
+    # Features and Target
+    # ========================================================
 
     X = df.drop(columns=[target_column])
     y = df[target_column]
 
-    # --------------------------------------------------
-    # Step 3: Identify numerical and categorical columns
-    # --------------------------------------------------
+    # ========================================================
+    # Column Identification
+    # ========================================================
 
     numerical_columns, categorical_columns = identify_columns(
         df,
         target_column
     )
 
-    # --------------------------------------------------
-    # Step 4: Create preprocessing pipeline
-    # --------------------------------------------------
+    # ========================================================
+    # Preprocessing
+    # ========================================================
 
     preprocessor = create_preprocessor(
         numerical_columns,
         categorical_columns
     )
 
-    # --------------------------------------------------
-    # Step 5: Split data
-    # --------------------------------------------------
+    # ========================================================
+    # Data Splitting
+    # ========================================================
 
     X_train, X_test, y_train, y_test = split_data(
         X,
@@ -110,9 +116,9 @@ def run_automl(
         random_state=random_state
     )
 
-    # --------------------------------------------------
-    # Step 6: Select models
-    # --------------------------------------------------
+    # ========================================================
+    # Model Selection
+    # ========================================================
 
     if problem_type == "classification":
 
@@ -129,13 +135,14 @@ def run_automl(
             metric = DEFAULT_REGRESSION_METRIC
 
     else:
+
         raise ValueError(
             f"Unsupported problem type: {problem_type}"
         )
 
-    # --------------------------------------------------
-    # Step 7: Create a pipeline for every model
-    # --------------------------------------------------
+    # ========================================================
+    # Model Pipelines
+    # ========================================================
 
     model_pipelines = {}
 
@@ -146,9 +153,9 @@ def run_automl(
             model
         )
 
-    # --------------------------------------------------
-    # Step 8: Train every model
-    # --------------------------------------------------
+    # ========================================================
+    # Model Training
+    # ========================================================
 
     trained_models = {}
     training_errors = {}
@@ -169,9 +176,32 @@ def run_automl(
 
             training_errors[model_name] = str(e)
 
-    # --------------------------------------------------
-    # Step 9: Make predictions
-    # --------------------------------------------------
+    # ========================================================
+    # Cross-Validation
+    # ========================================================
+
+    cv_results = {}
+    cv_errors = {}
+
+    for model_name, pipeline in model_pipelines.items():
+
+        try:
+
+            cv_results[model_name] = cross_validate_model(
+                pipeline,
+                X_train,
+                y_train,
+                scoring=metric,
+                problem_type=problem_type
+            )
+
+        except Exception as e:
+
+            cv_errors[model_name] = str(e)
+
+    # ========================================================
+    # Predictions
+    # ========================================================
 
     predictions = {}
     prediction_errors = {}
@@ -189,9 +219,9 @@ def run_automl(
 
             prediction_errors[model_name] = str(e)
 
-    # --------------------------------------------------
-    # Step 10: Evaluate every model
-    # --------------------------------------------------
+    # ========================================================
+    # Evaluation
+    # ========================================================
 
     evaluation_results = {}
     evaluation_errors = {}
@@ -222,9 +252,9 @@ def run_automl(
 
             evaluation_errors[model_name] = str(e)
 
-    # --------------------------------------------------
-    # Step 11: Create results DataFrame
-    # --------------------------------------------------
+    # ========================================================
+    # Results DataFrame
+    # ========================================================
 
     results_df = pd.DataFrame.from_dict(
         evaluation_results,
@@ -233,9 +263,9 @@ def run_automl(
 
     results_df.index.name = "model"
 
-    # --------------------------------------------------
-    # Step 12: Select best model
-    # --------------------------------------------------
+    # ========================================================
+    # Best Model Selection
+    # ========================================================
 
     if results_df.empty:
 
@@ -249,9 +279,9 @@ def run_automl(
             problem_type
         )
 
-    # --------------------------------------------------
-    # Step 13: Return complete AutoML results
-    # --------------------------------------------------
+    # ========================================================
+    # Return Results
+    # ========================================================
 
     return {
         "errors": errors,
@@ -279,12 +309,14 @@ def run_automl(
 
         "training_errors": training_errors,
 
+        "cv_results": cv_results,
+        "cv_errors": cv_errors,
+
         "predictions": predictions,
 
         "prediction_errors": prediction_errors,
 
         "evaluation_results": evaluation_results,
-
         "evaluation_errors": evaluation_errors,
 
         "results_df": results_df,
