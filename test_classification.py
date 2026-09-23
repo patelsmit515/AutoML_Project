@@ -5,33 +5,28 @@ from src.preprocessing import (
     identify_columns,
     create_preprocessor
 )
-from src.models import get_regression_models
+from src.models import get_classification_models
 from src.training import (
     split_data,
     create_model_pipeline,
     train_model,
     make_predictions
 )
-from src.evaluation import (
-    evaluate_regression,
-    select_best_model
-)
-
-import pandas as pd
+from src.evaluation import evaluate_classification
 
 
 # ============================================================
 # Load Dataset
 # ============================================================
 
-df = load_data("data/regression_test.csv")
+df = load_data("data/test.csv")
 
 
 # ============================================================
 # Target Column
 # ============================================================
 
-target_column = "Salary"
+target_column = "Purchased"
 
 
 # ============================================================
@@ -69,86 +64,71 @@ preprocessor = create_preprocessor(
 X_train, X_test, y_train, y_test = split_data(
     X,
     y,
-    test_size=0.25,
+    test_size=0.2,
     random_state=DEFAULT_RANDOM_STATE
 )
 
 
 # ============================================================
-# Get Regression Models
+# Get Classification Models
 # ============================================================
 
-models = get_regression_models()
-
-all_results = {}
+models = get_classification_models()
 
 
-# ============================================================
-# Train and Evaluate Each Model
-# ============================================================
-
-for model_name, model in models.items():
-
-    print(f"\n{'=' * 40}")
-    print(f"Model: {model_name}")
-    print(f"{'=' * 40}")
-
-    # Create pipeline
-    pipeline = create_model_pipeline(
-        preprocessor,
-        model
-    )
-
-    # Train model
-    trained_pipeline = train_model(
-        pipeline,
-        X_train,
-        y_train
-    )
-
-    # Make predictions
-    predictions = make_predictions(
-        trained_pipeline,
-        X_test
-    )
-
-    # Evaluate model
-    results = evaluate_regression(
-        y_test,
-        predictions
-    )
-
-    all_results[model_name] = results
-
-    # Display results
-    for metric, value in results.items():
-        print(f"{metric}: {value:.4f}")
+# Select one model
+model = models["Random Forest"]
 
 
 # ============================================================
-# Create Results DataFrame
+# Create Pipeline
 # ============================================================
 
-results_df = pd.DataFrame.from_dict(
-    all_results,
-    orient="index"
+pipeline = create_model_pipeline(
+    preprocessor,
+    model
 )
 
 
-print("\n\nModel comparison:")
-print(results_df)
-
-
 # ============================================================
-# Select Best Model
+# Train Model
 # ============================================================
 
-best_model = select_best_model(
-    results_df,
-    "r2_score",
-    "regression"
+trained_pipeline = train_model(
+    pipeline,
+    X_train,
+    y_train
 )
 
+print("Model trained successfully!")
 
-print("\nBest model according to R²:")
-print(best_model)
+
+# ============================================================
+# Make Predictions
+# ============================================================
+
+predictions = make_predictions(
+    trained_pipeline,
+    X_test
+)
+
+print("\nActual values:")
+print(y_test.values)
+
+print("\nPredicted values:")
+print(predictions)
+
+
+# ============================================================
+# Evaluate Model
+# ============================================================
+
+results = evaluate_classification(
+    y_test,
+    predictions
+)
+
+print("\nEvaluation results:")
+
+for metric, value in results.items():
+    print(f"{metric}: {value:.4f}")
