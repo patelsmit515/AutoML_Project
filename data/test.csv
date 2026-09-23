@@ -1,5 +1,11 @@
 Age,Salary,City,Purchased
 20,25000,Surat,0
+22,30000,Mumbai,0
 25,35000,Mumbai,1
+27,40000,Delhi,1
 30,45000,Surat,1
+32,48000,Delhi,1
 35,55000,Delhi,1
+38,60000,Surat,1
+40,65000,Mumbai,1
+45,70000,Delhi,1

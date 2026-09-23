@@ -2,15 +2,15 @@ from src.data_loader import load_data
 from src.automl import run_automl
 
 
-# Load regression dataset
-df = load_data("data/regression_test.csv")
+# Load classification dataset
+df = load_data("data/test.csv")
 
 
 # Run AutoML
 result = run_automl(
     df=df,
-    target_column="Salary",
-    problem_type="regression"
+    target_column="Purchased",
+    problem_type="classification"
 )
 
 
