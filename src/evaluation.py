@@ -1,8 +1,8 @@
 from src.config import (
     CLASSIFICATION_METRICS,
-    REGRESSION_METRICS
+    REGRESSION_METRICS,
+    METRIC_INFO
 )
-
 
 from sklearn.metrics import (
     accuracy_score,
@@ -14,7 +14,11 @@ from sklearn.metrics import (
     r2_score
 )
 
-# Classification evaluation function
+
+# ============================================================
+# Classification Evaluation
+# ============================================================
+
 def evaluate_classification(y_true, y_pred):
 
     accuracy = accuracy_score(y_true, y_pred)
@@ -47,7 +51,10 @@ def evaluate_classification(y_true, y_pred):
     return results
 
 
-# Regression evaluation function
+# ============================================================
+# Regression Evaluation
+# ============================================================
+
 def evaluate_regression(y_true, y_pred):
 
     mae = mean_absolute_error(
@@ -79,17 +86,19 @@ def evaluate_regression(y_true, y_pred):
 
     return results
 
+
+# ============================================================
+# Best Model Selection
+# ============================================================
+
 def select_best_model(results_df, metric, problem_type):
 
-    
     if problem_type == "classification":
 
         if metric not in CLASSIFICATION_METRICS:
             raise ValueError(
                 f"'{metric}' is not a valid classification metric."
             )
-
-        best_model = results_df[metric].idxmax()
 
     elif problem_type == "regression":
 
@@ -98,15 +107,23 @@ def select_best_model(results_df, metric, problem_type):
                 f"'{metric}' is not a valid regression metric."
             )
 
-        if metric in ["mae", "mse", "rmse"]:
-            best_model = results_df[metric].idxmin()
+    else:
 
-        else:
-            best_model = results_df[metric].idxmax()
+        raise ValueError(
+            f"Unsupported problem type: {problem_type}"
+        )
+
+    direction = METRIC_INFO[metric]["direction"]
+
+    if direction == "higher":
+        best_model = results_df[metric].idxmax()
+
+    elif direction == "lower":
+        best_model = results_df[metric].idxmin()
 
     else:
         raise ValueError(
-            f"Unsupported problem type: {problem_type}"
+            f"Unsupported metric direction: {direction}"
         )
 
     return best_model
