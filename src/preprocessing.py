@@ -1,9 +1,14 @@
-import pandas as pd 
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import (OneHotEncoder, StandardScaler,
-                    OrdinalEncoder,MinMaxScaler,RobustScaler)
+from sklearn.preprocessing import (
+    OneHotEncoder,
+    StandardScaler,
+    OrdinalEncoder,
+    MinMaxScaler,
+    RobustScaler
+)
+
 from src.config import (
     DEFAULT_SCALING,
     DEFAULT_ENCODING,
@@ -12,49 +17,76 @@ from src.config import (
 )
 
 
-#Num and Cat Columns identifier
-def identify_columns(df, target_column):
-    features = df.drop(columns=[target_column])
+# ============================================================
+# Identify Numerical and Categorical Columns
+# ============================================================
 
-    numerical_columns = features.select_dtypes(include="number").columns.tolist()
-    
-    categorical_columns = features.select_dtypes(include="object").columns.tolist()
-    
+def identify_columns(df, target_column):
+
+    features = df.drop(
+        columns=[target_column]
+    )
+
+    numerical_columns = (
+        features
+        .select_dtypes(include="number")
+        .columns
+        .tolist()
+    )
+
+    categorical_columns = (
+        features
+        .select_dtypes(include="object")
+        .columns
+        .tolist()
+    )
+
     return numerical_columns, categorical_columns
 
 
-#Null values imputer
+# ============================================================
+# Handle Missing Values
+# ============================================================
+
 def handle_missing_values(
     df,
     numerical_columns,
     categorical_columns,
-    numerical_strategy="median",
-    categorical_strategy="most_frequent"
+    numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
+    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION
 ):
+
     df = df.copy()
-    
+
     numerical_imputer = SimpleImputer(
-        strategy = numerical_strategy
+        strategy=numerical_strategy
     )
 
     categorical_imputer = SimpleImputer(
-        strategy = categorical_strategy
+        strategy=categorical_strategy
     )
 
     if numerical_columns:
+
         df[numerical_columns] = numerical_imputer.fit_transform(
             df[numerical_columns]
         )
 
     if categorical_columns:
+
         df[categorical_columns] = categorical_imputer.fit_transform(
             df[categorical_columns]
         )
 
     return df
 
-# Encoding Num data
+
+# ============================================================
+# Get Scaler
+# ============================================================
+
 def get_scaler(scaling_strategy):
+
     if scaling_strategy == "standard":
         return StandardScaler()
 
@@ -68,26 +100,41 @@ def get_scaler(scaling_strategy):
         return "passthrough"
 
     else:
-        raise ValueError("Invalid scaling strategy.")
+        raise ValueError(
+            f"Invalid scaling strategy: {scaling_strategy}"
+        )
 
-# Encoding Categorical data
+
+# ============================================================
+# Get Encoder
+# ============================================================
 
 def get_encoder(encoding_strategy):
+
     if encoding_strategy == "onehot":
+
         return OneHotEncoder(
             handle_unknown="ignore"
         )
 
     elif encoding_strategy == "ordinal":
+
         return OrdinalEncoder(
             handle_unknown="use_encoded_value",
             unknown_value=-1
         )
 
     else:
-        raise ValueError("Invalid encoding strategy.")
 
-# Converting data 
+        raise ValueError(
+            f"Invalid encoding strategy: {encoding_strategy}"
+        )
+
+
+# ============================================================
+# Create Preprocessor
+# ============================================================
+
 def create_preprocessor(
     numerical_columns,
     categorical_columns,
@@ -99,19 +146,31 @@ def create_preprocessor(
 
     numerical_pipeline = Pipeline(
         steps=[
-            ("imputer", SimpleImputer(
-                strategy = numerical_strategy
-            )),
-            ("scaler", get_scaler(scaling_strategy))
+            (
+                "imputer",
+                SimpleImputer(
+                    strategy=numerical_strategy
+                )
+            ),
+            (
+                "scaler",
+                get_scaler(scaling_strategy)
+            )
         ]
     )
 
     categorical_pipeline = Pipeline(
         steps=[
-            ("imputer", SimpleImputer(
-                strategy=categorical_strategy
-            )),
-            ("encoder", get_encoder(encoding_strategy))
+            (
+                "imputer",
+                SimpleImputer(
+                    strategy=categorical_strategy
+                )
+            ),
+            (
+                "encoder",
+                get_encoder(encoding_strategy)
+            )
         ]
     )
 
