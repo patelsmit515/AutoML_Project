@@ -1,11 +1,37 @@
+from src.config import (
+    CLASSIFICATION_MODEL_NAMES,
+    REGRESSION_MODEL_NAMES
+)
+
+
+# Classification models
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier
+)
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-# Classification models dictionary
+
+# Regression models
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    GradientBoostingRegressor
+)
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+from xgboost import XGBRegressor
+
+
+# ============================================================
+# Classification Models
+# ============================================================
+
 def get_classification_models():
 
     models = {
@@ -18,19 +44,15 @@ def get_classification_models():
         "XGBoost": XGBClassifier()
     }
 
-    return models
+    return {
+        name: models[name]
+        for name in CLASSIFICATION_MODEL_NAMES
+    }
 
 
-# Adding regression models 
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import (
-    RandomForestRegressor,
-    GradientBoostingRegressor
-)
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
-from xgboost import XGBRegressor
+# ============================================================
+# Regression Models
+# ============================================================
 
 def get_regression_models():
 
@@ -44,4 +66,7 @@ def get_regression_models():
         "XGBoost": XGBRegressor()
     }
 
-    return models
+    return {
+        name: models[name]
+        for name in REGRESSION_MODEL_NAMES
+    }
