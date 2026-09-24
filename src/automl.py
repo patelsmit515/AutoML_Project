@@ -10,7 +10,10 @@ from src.config import (
     DEFAULT_N_ITER
 )
 
-from src.validation import validate_dataset
+from src.validation import (
+    validate_dataset,
+    validate_automl_config
+)
 
 from src.preprocessing import (
     identify_columns,
@@ -60,24 +63,28 @@ def run_automl(
 
     Workflow:
     1. Validate dataset
-    2. Separate features and target
-    3. Identify numerical and categorical columns
-    4. Create preprocessing pipeline
-    5. Split data
-    6. Select models
-    7. Create model pipelines
-    8. Train models
-    9. Cross-validate models
+    2. Determine default metric
+    3. Validate AutoML configuration
+    4. Separate features and target
+    5. Identify numerical and categorical columns
+    6. Create preprocessing pipeline
+    7. Split data
+    8. Select models
+    9. Create model pipelines
     10. Optionally optimize hyperparameters
-    11. Make predictions
-    12. Evaluate models
-    13. Create results DataFrame
-    14. Create comparison DataFrame
-    15. Select best model
+    11. Train models
+    12. Cross-validate models
+    13. Make predictions
+    14. Evaluate models
+    15. Create results DataFrame
+    16. Create comparison DataFrame
+    17. Select best model
+    18. Create public summary
+    19. Return results
     """
 
     # ========================================================
-    # Validation
+    # Dataset Validation
     # ========================================================
 
     errors, warnings = validate_dataset(
@@ -87,7 +94,59 @@ def run_automl(
 
     if errors:
         return {
+            "summary": {
+                "success": False,
+                "problem_type": problem_type,
+                "target_column": target_column,
+                "metric": metric,
+                "best_model": None,
+                "comparison_df": pd.DataFrame(),
+                "warnings": warnings,
+                "errors": errors
+            },
             "errors": errors,
+            "warnings": warnings
+        }
+
+    # ========================================================
+    # Default Metric
+    # ========================================================
+
+    if metric is None:
+
+        if problem_type == "classification":
+            metric = DEFAULT_CLASSIFICATION_METRIC
+
+        elif problem_type == "regression":
+            metric = DEFAULT_REGRESSION_METRIC
+
+    # ========================================================
+    # Configuration Validation
+    # ========================================================
+
+    config_errors = validate_automl_config(
+        problem_type=problem_type,
+        metric=metric,
+        test_size=test_size,
+        optimize=optimize,
+        optimization_method=optimization_method,
+        cv_folds=cv_folds,
+        n_iter=n_iter
+    )
+
+    if config_errors:
+        return {
+            "summary": {
+                "success": False,
+                "problem_type": problem_type,
+                "target_column": target_column,
+                "metric": metric,
+                "best_model": None,
+                "comparison_df": pd.DataFrame(),
+                "warnings": warnings,
+                "errors": config_errors
+            },
+            "errors": config_errors,
             "warnings": warnings
         }
 
@@ -95,7 +154,10 @@ def run_automl(
     # Features and Target
     # ========================================================
 
-    X = df.drop(columns=[target_column])
+    X = df.drop(
+        columns=[target_column]
+    )
+
     y = df[target_column]
 
     # ========================================================
@@ -135,15 +197,9 @@ def run_automl(
 
         models = get_classification_models()
 
-        if metric is None:
-            metric = DEFAULT_CLASSIFICATION_METRIC
-
     elif problem_type == "regression":
 
         models = get_regression_models()
-
-        if metric is None:
-            metric = DEFAULT_REGRESSION_METRIC
 
     else:
 
@@ -194,7 +250,7 @@ def run_automl(
                 tuning_errors[model_name] = str(e)
 
         # ----------------------------------------------------
-        # Replace original pipelines with tuned pipelines
+        # Replace Original Pipelines With Tuned Pipelines
         # ----------------------------------------------------
 
         for model_name, tuning_result in tuning_results.items():
@@ -328,6 +384,10 @@ def run_automl(
 
     comparison_df = results_df.copy()
 
+    # --------------------------------------------------------
+    # Cross-Validation Results
+    # --------------------------------------------------------
+
     cv_mean = {
         model_name: cv_result["mean_score"]
         for model_name, cv_result in cv_results.items()
@@ -361,6 +421,29 @@ def run_automl(
         pd.Series(cv_folds)
     )
 
+    # --------------------------------------------------------
+    # Tuning Information
+    # --------------------------------------------------------
+
+    tuned = {
+        model_name: model_name in tuning_results
+        for model_name in comparison_df.index
+    }
+
+    best_params = {
+        model_name: tuning_result["best_params"]
+        for model_name, tuning_result
+        in tuning_results.items()
+    }
+
+    comparison_df["tuned"] = pd.Series(
+        tuned
+    )
+
+    comparison_df["best_params"] = pd.Series(
+        best_params
+    )
+
     # ========================================================
     # Best Model Selection
     # ========================================================
@@ -378,15 +461,51 @@ def run_automl(
         )
 
     # ========================================================
+    # Public AutoML Summary
+    # ========================================================
+
+    success = (
+        not results_df.empty
+        and len(evaluation_results) > 0
+    )
+
+    summary = {
+        "success": success,
+        "problem_type": problem_type,
+        "target_column": target_column,
+        "metric": metric,
+        "best_model": best_model,
+        "comparison_df": comparison_df,
+        "warnings": warnings,
+        "errors": errors
+    }
+
+    # ========================================================
     # Return Results
     # ========================================================
 
     return {
+
+        # ----------------------------------------------------
+        # Public Results
+        # ----------------------------------------------------
+
+        "summary": summary,
+
         "errors": errors,
         "warnings": warnings,
 
         "problem_type": problem_type,
         "target_column": target_column,
+        "metric": metric,
+        "best_model": best_model,
+
+        "comparison_df": comparison_df,
+        "results_df": results_df,
+
+        # ----------------------------------------------------
+        # Dataset Information
+        # ----------------------------------------------------
 
         "X": X,
         "y": y,
@@ -394,30 +513,55 @@ def run_automl(
         "numerical_columns": numerical_columns,
         "categorical_columns": categorical_columns,
 
-        "preprocessor": preprocessor,
-
         "X_train": X_train,
         "X_test": X_test,
         "y_train": y_train,
         "y_test": y_test,
 
+        # ----------------------------------------------------
+        # Preprocessing
+        # ----------------------------------------------------
+
+        "preprocessor": preprocessor,
+
+        # ----------------------------------------------------
+        # Models
+        # ----------------------------------------------------
+
         "models": models,
         "model_pipelines": model_pipelines,
         "trained_models": trained_models,
 
+        # ----------------------------------------------------
+        # Training
+        # ----------------------------------------------------
+
         "training_errors": training_errors,
+
+        # ----------------------------------------------------
+        # Cross-Validation
+        # ----------------------------------------------------
 
         "cv_results": cv_results,
         "cv_errors": cv_errors,
 
+        # ----------------------------------------------------
+        # Predictions
+        # ----------------------------------------------------
+
         "predictions": predictions,
         "prediction_errors": prediction_errors,
+
+        # ----------------------------------------------------
+        # Evaluation
+        # ----------------------------------------------------
 
         "evaluation_results": evaluation_results,
         "evaluation_errors": evaluation_errors,
 
-        "results_df": results_df,
-        "comparison_df": comparison_df,
+        # ----------------------------------------------------
+        # Hyperparameter Tuning
+        # ----------------------------------------------------
 
         "tuning_results": tuning_results,
         "tuning_errors": tuning_errors,
@@ -425,9 +569,5 @@ def run_automl(
         "optimize": optimize,
         "optimization_method": optimization_method,
         "cv_folds": cv_folds,
-        "n_iter": n_iter,
-
-        "metric": metric,
-
-        "best_model": best_model
+        "n_iter": n_iter
     }

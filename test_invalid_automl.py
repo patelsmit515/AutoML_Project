@@ -4,58 +4,82 @@ from src.automl import run_automl
 
 
 # ============================================================
-# Load Small Dataset
+# Load Dataset
 # ============================================================
 
-df = pd.read_csv("data/small_test.csv")
+df = pd.read_csv("data/test.csv")
 
 
 # ============================================================
-# Run AutoML
+# Helper Function
 # ============================================================
 
-result = run_automl(
-    df=df,
-    target_column="Purchased",
-    problem_type="classification"
+def test_configuration(title, **kwargs):
+
+    result = run_automl(
+        df=df,
+        target_column="Purchased",
+        problem_type="classification",
+        **kwargs
+    )
+
+    print(f"\n{title}")
+    print("-" * 50)
+
+    print("Errors:")
+    print(result["errors"])
+
+    print("Trained models:")
+    print(result.get("trained_models"))
+
+
+# ============================================================
+# Invalid Metric
+# ============================================================
+
+test_configuration(
+    "Invalid Metric",
+    metric="r2_score"
 )
 
 
 # ============================================================
-# Dataset Warnings
+# Invalid Test Size
 # ============================================================
 
-print("\nWarnings:")
-print(result["warnings"])
-
-
-# ============================================================
-# Training Errors
-# ============================================================
-
-print("\nTraining errors:")
-print(result["training_errors"])
+test_configuration(
+    "Invalid Test Size",
+    test_size=0.35
+)
 
 
 # ============================================================
-# Cross-Validation Errors
+# Invalid CV Folds
 # ============================================================
 
-print("\nCross-validation errors:")
-print(result["cv_errors"])
-
-
-# ============================================================
-# Evaluation Errors
-# ============================================================
-
-print("\nEvaluation errors:")
-print(result["evaluation_errors"])
+test_configuration(
+    "Invalid CV Folds",
+    cv_folds=7
+)
 
 
 # ============================================================
-# Successful Models
+# Invalid Optimization Method
 # ============================================================
 
-print("\nTrained models:")
-print(list(result["trained_models"].keys()))
+test_configuration(
+    "Invalid Optimization Method",
+    optimize=True,
+    optimization_method="invalid_method"
+)
+
+
+# ============================================================
+# Invalid Number of Iterations
+# ============================================================
+
+test_configuration(
+    "Invalid n_iter",
+    optimize=True,
+    n_iter=0
+)

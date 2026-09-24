@@ -196,3 +196,13 @@ else:
     print("\nBest model:")
 
     print(result["best_model"])
+    
+    # ============================================================
+    # Public Summary
+    # ============================================================
+
+    print("\nPublic summary:")
+
+    print(
+        result["summary"]
+    )

@@ -4,51 +4,69 @@ from src.automl import run_automl
 
 
 # ============================================================
-# Load Data
+# Load Small Classification Dataset
 # ============================================================
 
-df = pd.read_csv("data/regression_test.csv")
+df = pd.read_csv("data/small_test.csv")
 
 
 # ============================================================
-# Run AutoML With Optimization
+# Run AutoML With Hyperparameter Tuning
 # ============================================================
 
 result = run_automl(
     df=df,
-    target_column="Salary",
-    problem_type="regression",
+    target_column="Purchased",
+    problem_type="classification",
     optimize=True,
-    optimization_method="random_search",
-    cv_folds=3,
-    n_iter=5
+    optimization_method="grid_search",
+    cv_folds=5
 )
 
 
 # ============================================================
-# Display Tuning Results
+# Display Tuning Errors
 # ============================================================
 
 print("\nTuning errors:")
-print(result["tuning_errors"])
 
-print("\nTuning results:")
+for model_name, error in result["tuning_errors"].items():
+
+    print(f"\n{model_name}:")
+    print(error)
+
+
+# ============================================================
+# Display Successful Tuning Results
+# ============================================================
+
+print("\nSuccessful tuning results:")
 
 for model_name, tuning_result in result["tuning_results"].items():
 
     print(f"\n{model_name}")
+
     print("Best parameters:")
     print(tuning_result["best_params"])
+
     print("Best CV score:")
     print(tuning_result["best_score"])
 
+    print("Actual CV folds:")
+    print(tuning_result["cv_folds"])
+
 
 # ============================================================
-# Display Final Evaluation
+# Final Evaluation
 # ============================================================
 
 print("\nFinal evaluation:")
 print(result["results_df"])
+
+
+# ============================================================
+# Best Model
+# ============================================================
 
 print("\nBest model:")
 print(result["best_model"])

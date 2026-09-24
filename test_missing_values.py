@@ -4,10 +4,20 @@ from src.automl import run_automl
 
 
 # ============================================================
-# Load Small Dataset
+# Load Dataset
 # ============================================================
 
-df = pd.read_csv("data/small_test.csv")
+df = pd.read_csv(
+    "data/missing_values_test.csv"
+)
+
+
+# ============================================================
+# Check Original Missing Values
+# ============================================================
+
+print("\nOriginal missing values:")
+print(df.isnull().sum())
 
 
 # ============================================================
@@ -22,7 +32,15 @@ result = run_automl(
 
 
 # ============================================================
-# Dataset Warnings
+# Display Errors
+# ============================================================
+
+print("\nErrors:")
+print(result["errors"])
+
+
+# ============================================================
+# Display Warnings
 # ============================================================
 
 print("\nWarnings:")
@@ -30,7 +48,7 @@ print(result["warnings"])
 
 
 # ============================================================
-# Training Errors
+# Display Training Errors
 # ============================================================
 
 print("\nTraining errors:")
@@ -38,15 +56,7 @@ print(result["training_errors"])
 
 
 # ============================================================
-# Cross-Validation Errors
-# ============================================================
-
-print("\nCross-validation errors:")
-print(result["cv_errors"])
-
-
-# ============================================================
-# Evaluation Errors
+# Display Evaluation Errors
 # ============================================================
 
 print("\nEvaluation errors:")
@@ -54,8 +64,18 @@ print(result["evaluation_errors"])
 
 
 # ============================================================
-# Successful Models
+# Display Successful Models
 # ============================================================
 
 print("\nTrained models:")
-print(list(result["trained_models"].keys()))
+print(
+    list(result["trained_models"].keys())
+)
+
+
+# ============================================================
+# Display Evaluation Results
+# ============================================================
+
+print("\nEvaluation results:")
+print(result["results_df"])
