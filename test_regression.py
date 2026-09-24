@@ -170,7 +170,14 @@ else:
     print("\nEvaluation results:")
 
     print(result["results_df"])
+    
+    # ========================================================
+    # Unified Model Comparison
+    # ========================================================
 
+    print("\nModel comparison:")
+
+    print(result["comparison_df"])
 
     # ========================================================
     # Selected Metric

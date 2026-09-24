@@ -262,6 +262,45 @@ def run_automl(
     )
 
     results_df.index.name = "model"
+    
+    # ========================================================
+    # Unified Model Comparison Table
+    # ========================================================
+
+    comparison_df = results_df.copy()
+
+    cv_mean = {
+        model_name: cv_result["mean_score"]
+        for model_name, cv_result in cv_results.items()
+    }
+
+    cv_std = {
+        model_name: cv_result["std_score"]
+        for model_name, cv_result in cv_results.items()
+    }
+
+    cv_folds = {
+        model_name: cv_result["cv_folds"]
+        for model_name, cv_result in cv_results.items()
+    }
+
+    comparison_df.insert(
+        0,
+        "cv_mean",
+        pd.Series(cv_mean)
+    )
+
+    comparison_df.insert(
+        1,
+        "cv_std",
+        pd.Series(cv_std)
+    )
+
+    comparison_df.insert(
+        2,
+        "cv_folds",
+        pd.Series(cv_folds)
+    )
 
     # ========================================================
     # Best Model Selection
@@ -320,6 +359,8 @@ def run_automl(
         "evaluation_errors": evaluation_errors,
 
         "results_df": results_df,
+        
+        "comparison_df": comparison_df,
 
         "metric": metric,
 
