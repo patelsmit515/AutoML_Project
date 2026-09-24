@@ -4,7 +4,10 @@ from src.config import (
     DEFAULT_TEST_SIZE,
     DEFAULT_RANDOM_STATE,
     DEFAULT_CLASSIFICATION_METRIC,
-    DEFAULT_REGRESSION_METRIC
+    DEFAULT_REGRESSION_METRIC,
+    DEFAULT_OPTIMIZATION_METHOD,
+    DEFAULT_CV_FOLDS,
+    DEFAULT_N_ITER
 )
 
 from src.validation import validate_dataset
@@ -33,6 +36,8 @@ from src.evaluation import (
     select_best_model
 )
 
+from src.tuning import tune_model
+
 
 # ============================================================
 # AutoML Workflow
@@ -44,7 +49,11 @@ def run_automl(
     problem_type,
     test_size=DEFAULT_TEST_SIZE,
     random_state=DEFAULT_RANDOM_STATE,
-    metric=None
+    metric=None,
+    optimize=False,
+    optimization_method=DEFAULT_OPTIMIZATION_METHOD,
+    cv_folds=DEFAULT_CV_FOLDS,
+    n_iter=DEFAULT_N_ITER
 ):
     """
     Run the complete AutoML workflow.
@@ -59,10 +68,12 @@ def run_automl(
     7. Create model pipelines
     8. Train models
     9. Cross-validate models
-    10. Make predictions
-    11. Evaluate models
-    12. Create results DataFrame
-    13. Select best model
+    10. Optionally optimize hyperparameters
+    11. Make predictions
+    12. Evaluate models
+    13. Create results DataFrame
+    14. Create comparison DataFrame
+    15. Select best model
     """
 
     # ========================================================
@@ -154,6 +165,45 @@ def run_automl(
         )
 
     # ========================================================
+    # Hyperparameter Optimization
+    # ========================================================
+
+    tuning_results = {}
+    tuning_errors = {}
+
+    if optimize:
+
+        for model_name, pipeline in model_pipelines.items():
+
+            try:
+
+                tuning_results[model_name] = tune_model(
+                    pipeline=pipeline,
+                    model_name=model_name,
+                    X_train=X_train,
+                    y_train=y_train,
+                    metric=metric,
+                    problem_type=problem_type,
+                    method=optimization_method,
+                    cv=cv_folds,
+                    n_iter=n_iter
+                )
+
+            except Exception as e:
+
+                tuning_errors[model_name] = str(e)
+
+        # ----------------------------------------------------
+        # Replace original pipelines with tuned pipelines
+        # ----------------------------------------------------
+
+        for model_name, tuning_result in tuning_results.items():
+
+            model_pipelines[model_name] = (
+                tuning_result["best_estimator"]
+            )
+
+    # ========================================================
     # Model Training
     # ========================================================
 
@@ -164,13 +214,21 @@ def run_automl(
 
         try:
 
-            trained_pipeline = train_model(
-                pipeline,
-                X_train,
-                y_train
-            )
+            # Tuned pipelines have already been fitted by
+            # GridSearchCV / RandomizedSearchCV.
+            if optimize and model_name in tuning_results:
 
-            trained_models[model_name] = trained_pipeline
+                trained_models[model_name] = pipeline
+
+            else:
+
+                trained_pipeline = train_model(
+                    pipeline,
+                    X_train,
+                    y_train
+                )
+
+                trained_models[model_name] = trained_pipeline
 
         except Exception as e:
 
@@ -192,7 +250,8 @@ def run_automl(
                 X_train,
                 y_train,
                 scoring=metric,
-                problem_type=problem_type
+                problem_type=problem_type,
+                cv=cv_folds
             )
 
         except Exception as e:
@@ -262,7 +321,7 @@ def run_automl(
     )
 
     results_df.index.name = "model"
-    
+
     # ========================================================
     # Unified Model Comparison Table
     # ========================================================
@@ -352,15 +411,21 @@ def run_automl(
         "cv_errors": cv_errors,
 
         "predictions": predictions,
-
         "prediction_errors": prediction_errors,
 
         "evaluation_results": evaluation_results,
         "evaluation_errors": evaluation_errors,
 
         "results_df": results_df,
-        
         "comparison_df": comparison_df,
+
+        "tuning_results": tuning_results,
+        "tuning_errors": tuning_errors,
+
+        "optimize": optimize,
+        "optimization_method": optimization_method,
+        "cv_folds": cv_folds,
+        "n_iter": n_iter,
 
         "metric": metric,
 
