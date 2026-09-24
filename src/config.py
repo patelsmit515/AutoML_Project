@@ -514,6 +514,8 @@ DEFAULT_NUMERICAL_IMPUTATION = "median"
 
 DEFAULT_CATEGORICAL_IMPUTATION = "most_frequent"
 
+DEFAULT_CATEGORICAL_FILL_VALUE = "Unknown"
+
 
 # ============================================================
 # Model Selection Defaults

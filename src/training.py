@@ -73,18 +73,31 @@ def make_predictions(pipeline, X_test):
 # Scoring Conversion
 # ============================================================
 
-def get_cv_scoring(metric):
-    scoring_map = {
-        "accuracy": "accuracy",
-        "precision": "precision",
-        "recall": "recall",
-        "f1_score": "f1",
+def get_cv_scoring(metric, is_multiclass=False):
+    if is_multiclass:
+        scoring_map = {
+            "accuracy": "accuracy",
+            "precision": "precision_weighted",
+            "recall": "recall_weighted",
+            "f1_score": "f1_weighted",
 
-        "mae": "neg_mean_absolute_error",
-        "mse": "neg_mean_squared_error",
-        "rmse": "neg_root_mean_squared_error",
-        "r2_score": "r2"
-    }
+            "mae": "neg_mean_absolute_error",
+            "mse": "neg_mean_squared_error",
+            "rmse": "neg_root_mean_squared_error",
+            "r2_score": "r2"
+        }
+    else:
+        scoring_map = {
+            "accuracy": "accuracy",
+            "precision": "precision",
+            "recall": "recall",
+            "f1_score": "f1",
+
+            "mae": "neg_mean_absolute_error",
+            "mse": "neg_mean_squared_error",
+            "rmse": "neg_root_mean_squared_error",
+            "r2_score": "r2"
+        }
 
     if metric not in scoring_map:
         raise ValueError(
@@ -106,11 +119,14 @@ def cross_validate_model(
     problem_type,
     cv=DEFAULT_CV_FOLDS
 ):
-    scoring = get_cv_scoring(scoring)
+    is_multiclass = False
 
     if problem_type == "classification":
 
         class_counts = y.value_counts()
+
+        if len(class_counts) > 2:
+            is_multiclass = True
 
         minimum_class_count = class_counts.min()
 
@@ -156,18 +172,20 @@ def cross_validate_model(
             f"Unsupported problem type: {problem_type}"
         )
 
+    scoring_name = get_cv_scoring(scoring, is_multiclass=is_multiclass)
+
     scores = cross_val_score(
         pipeline,
         X,
         y,
         cv=cv_strategy,
-        scoring=scoring,
+        scoring=scoring_name,
         error_score="raise"
     )
 
     # Convert negative sklearn regression scores
     # back to their normal positive metric values.
-    if scoring.startswith("neg_"):
+    if scoring_name.startswith("neg_"):
         scores = -scores
 
     return {

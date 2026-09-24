@@ -23,21 +23,29 @@ def evaluate_classification(y_true, y_pred):
 
     accuracy = accuracy_score(y_true, y_pred)
 
+    # Determine whether target is binary or multiclass
+    unique_classes = set(y_true)
+    is_multiclass = len(unique_classes) > 2
+    avg_strategy = "weighted" if is_multiclass else "binary"
+
     precision = precision_score(
         y_true,
         y_pred,
+        average=avg_strategy,
         zero_division=0
     )
 
     recall = recall_score(
         y_true,
         y_pred,
+        average=avg_strategy,
         zero_division=0
     )
 
     f1 = f1_score(
         y_true,
         y_pred,
+        average=avg_strategy,
         zero_division=0
     )
 

@@ -13,7 +13,8 @@ from src.config import (
     DEFAULT_SCALING,
     DEFAULT_ENCODING,
     DEFAULT_NUMERICAL_IMPUTATION,
-    DEFAULT_CATEGORICAL_IMPUTATION
+    DEFAULT_CATEGORICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_FILL_VALUE
 )
 
 
@@ -53,7 +54,8 @@ def handle_missing_values(
     numerical_columns,
     categorical_columns,
     numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
-    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION
+    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION,
+    categorical_fill_value=DEFAULT_CATEGORICAL_FILL_VALUE
 ):
 
     df = df.copy()
@@ -62,9 +64,15 @@ def handle_missing_values(
         strategy=numerical_strategy
     )
 
-    categorical_imputer = SimpleImputer(
-        strategy=categorical_strategy
-    )
+    if categorical_strategy == "constant":
+        categorical_imputer = SimpleImputer(
+            strategy="constant",
+            fill_value=categorical_fill_value
+        )
+    else:
+        categorical_imputer = SimpleImputer(
+            strategy=categorical_strategy
+        )
 
     if numerical_columns:
 
@@ -141,7 +149,8 @@ def create_preprocessor(
     numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
     categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION,
     scaling_strategy=DEFAULT_SCALING,
-    encoding_strategy=DEFAULT_ENCODING
+    encoding_strategy=DEFAULT_ENCODING,
+    categorical_fill_value=DEFAULT_CATEGORICAL_FILL_VALUE
 ):
 
     numerical_pipeline = Pipeline(
@@ -159,13 +168,21 @@ def create_preprocessor(
         ]
     )
 
+    if categorical_strategy == "constant":
+        categorical_imputer = SimpleImputer(
+            strategy="constant",
+            fill_value=categorical_fill_value
+        )
+    else:
+        categorical_imputer = SimpleImputer(
+            strategy=categorical_strategy
+        )
+
     categorical_pipeline = Pipeline(
         steps=[
             (
                 "imputer",
-                SimpleImputer(
-                    strategy=categorical_strategy
-                )
+                categorical_imputer
             ),
             (
                 "encoder",

@@ -3,7 +3,16 @@ from src.config import (
     REGRESSION_METRICS,
     OPTIMIZATION_METHODS,
     TEST_SIZE_OPTIONS,
-    CV_FOLD_OPTIONS
+    CV_FOLD_OPTIONS,
+    SCALING_OPTIONS,
+    ENCODING_OPTIONS,
+    NUMERICAL_IMPUTATION_OPTIONS,
+    CATEGORICAL_IMPUTATION_OPTIONS,
+    DEFAULT_SCALING,
+    DEFAULT_ENCODING,
+    DEFAULT_NUMERICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_FILL_VALUE
 )
 
 
@@ -57,7 +66,12 @@ def validate_automl_config(
     optimize,
     optimization_method,
     cv_folds,
-    n_iter
+    n_iter,
+    numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
+    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION,
+    scaling_strategy=DEFAULT_SCALING,
+    encoding_strategy=DEFAULT_ENCODING,
+    categorical_fill_value=DEFAULT_CATEGORICAL_FILL_VALUE
 ):
 
     errors = []
@@ -145,6 +159,50 @@ def validate_automl_config(
 
         errors.append(
             "optimize must be either True or False."
+        )
+
+    # --------------------------------------------------------
+    # Numerical Imputation Strategy
+    # --------------------------------------------------------
+
+    if numerical_strategy not in NUMERICAL_IMPUTATION_OPTIONS:
+
+        errors.append(
+            f"Invalid numerical imputation strategy: {numerical_strategy}. "
+            f"Choose from {list(NUMERICAL_IMPUTATION_OPTIONS.keys())}."
+        )
+
+    # --------------------------------------------------------
+    # Categorical Imputation Strategy
+    # --------------------------------------------------------
+
+    if categorical_strategy not in CATEGORICAL_IMPUTATION_OPTIONS:
+
+        errors.append(
+            f"Invalid categorical imputation strategy: {categorical_strategy}. "
+            f"Choose from {list(CATEGORICAL_IMPUTATION_OPTIONS.keys())}."
+        )
+
+    # --------------------------------------------------------
+    # Scaling Strategy
+    # --------------------------------------------------------
+
+    if scaling_strategy not in SCALING_OPTIONS:
+
+        errors.append(
+            f"Invalid scaling strategy: {scaling_strategy}. "
+            f"Choose from {list(SCALING_OPTIONS.keys())}."
+        )
+
+    # --------------------------------------------------------
+    # Encoding Strategy
+    # --------------------------------------------------------
+
+    if encoding_strategy not in ENCODING_OPTIONS:
+
+        errors.append(
+            f"Invalid encoding strategy: {encoding_strategy}. "
+            f"Choose from {list(ENCODING_OPTIONS.keys())}."
         )
 
     return errors

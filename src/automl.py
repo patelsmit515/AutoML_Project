@@ -7,7 +7,12 @@ from src.config import (
     DEFAULT_REGRESSION_METRIC,
     DEFAULT_OPTIMIZATION_METHOD,
     DEFAULT_CV_FOLDS,
-    DEFAULT_N_ITER
+    DEFAULT_N_ITER,
+    DEFAULT_SCALING,
+    DEFAULT_ENCODING,
+    DEFAULT_NUMERICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_IMPUTATION,
+    DEFAULT_CATEGORICAL_FILL_VALUE
 )
 
 from src.validation import (
@@ -53,6 +58,11 @@ def run_automl(
     test_size=DEFAULT_TEST_SIZE,
     random_state=DEFAULT_RANDOM_STATE,
     metric=None,
+    numerical_strategy=DEFAULT_NUMERICAL_IMPUTATION,
+    categorical_strategy=DEFAULT_CATEGORICAL_IMPUTATION,
+    categorical_fill_value=DEFAULT_CATEGORICAL_FILL_VALUE,
+    scaling_strategy=DEFAULT_SCALING,
+    encoding_strategy=DEFAULT_ENCODING,
     optimize=False,
     optimization_method=DEFAULT_OPTIMIZATION_METHOD,
     cv_folds=DEFAULT_CV_FOLDS,
@@ -131,7 +141,12 @@ def run_automl(
         optimize=optimize,
         optimization_method=optimization_method,
         cv_folds=cv_folds,
-        n_iter=n_iter
+        n_iter=n_iter,
+        numerical_strategy=numerical_strategy,
+        categorical_strategy=categorical_strategy,
+        scaling_strategy=scaling_strategy,
+        encoding_strategy=encoding_strategy,
+        categorical_fill_value=categorical_fill_value
     )
 
     if config_errors:
@@ -175,7 +190,12 @@ def run_automl(
 
     preprocessor = create_preprocessor(
         numerical_columns,
-        categorical_columns
+        categorical_columns,
+        numerical_strategy=numerical_strategy,
+        categorical_strategy=categorical_strategy,
+        scaling_strategy=scaling_strategy,
+        encoding_strategy=encoding_strategy,
+        categorical_fill_value=categorical_fill_value
     )
 
     # ========================================================
@@ -560,8 +580,14 @@ def run_automl(
         "evaluation_errors": evaluation_errors,
 
         # ----------------------------------------------------
-        # Hyperparameter Tuning
+        # Hyperparameter Tuning & Preprocessing
         # ----------------------------------------------------
+
+        "numerical_strategy": numerical_strategy,
+        "categorical_strategy": categorical_strategy,
+        "categorical_fill_value": categorical_fill_value,
+        "scaling_strategy": scaling_strategy,
+        "encoding_strategy": encoding_strategy,
 
         "tuning_results": tuning_results,
         "tuning_errors": tuning_errors,

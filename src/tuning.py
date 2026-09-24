@@ -160,8 +160,13 @@ def tune_model(
         model_name
     )
 
+    is_multiclass = False
+    if problem_type == "classification" and len(set(y_train)) > 2:
+        is_multiclass = True
+
     scoring = get_cv_scoring(
-        metric
+        metric,
+        is_multiclass=is_multiclass
     )
 
     cv_strategy = get_tuning_cv(
